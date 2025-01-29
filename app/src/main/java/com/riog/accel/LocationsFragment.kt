@@ -1,6 +1,7 @@
 package com.riog.accel
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -9,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -77,10 +79,11 @@ class LocationsFragment : Fragment() {
         }
     }
 
-    // New method to refresh locations list
     fun refreshLocationsList() {
         val locations = databaseHelper.getAllLocations()
-        locationsAdapter = LocationsAdapter(locations)
+        locationsAdapter = LocationsAdapter(locations) { location ->
+            shareLocation(location)
+        }
         locationsRecyclerView.adapter = locationsAdapter
         updateEmptyViewVisibility(locations)
     }
@@ -88,11 +91,49 @@ class LocationsFragment : Fragment() {
     private fun setupRecyclerView() {
         val locations = databaseHelper.getAllLocations()
         
-        locationsAdapter = LocationsAdapter(locations)
+        locationsAdapter = LocationsAdapter(locations) { location ->
+            shareLocation(location)
+        }
         locationsRecyclerView.layoutManager = LinearLayoutManager(context)
         locationsRecyclerView.adapter = locationsAdapter
         
         updateEmptyViewVisibility(locations)
+    }
+
+    // New method to share location
+    private fun shareLocation(location: LocationEntry) {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Location Details")
+            
+            // Create a formatted location message
+            val locationMessage = buildString {
+                append("Location Details:\n")
+                append("Latitude: ${location.latitude}\n")
+                append("Longitude: ${location.longitude}\n")
+                
+                // Add address if available
+                val addressParts = listOfNotNull(
+                    location.streetNumber,
+                    location.streetName,
+                    location.city,
+                    location.state,
+                    location.postalCode,
+                    location.country
+                )
+                if (addressParts.isNotEmpty()) {
+                    append("Address: ${addressParts.joinToString(", ")}\n")
+                }
+                
+                // Add Google Maps link
+                append("\nView on Google Maps: https://www.google.com/maps?q=${location.latitude},${location.longitude}")
+            }
+            
+            putExtra(Intent.EXTRA_TEXT, locationMessage)
+        }
+        
+        // Start the share intent
+        startActivity(Intent.createChooser(shareIntent, "Share Location"))
     }
 
     private fun setupAddLocationButton() {
@@ -170,7 +211,9 @@ class LocationsFragment : Fragment() {
             databaseHelper.dropLocationsTable()
             val locations = databaseHelper.getAllLocations()
             
-            locationsAdapter = LocationsAdapter(locations)
+            locationsAdapter = LocationsAdapter(locations) { location ->
+                shareLocation(location)
+            }
             locationsRecyclerView.adapter = locationsAdapter
             
             updateEmptyViewVisibility(locations)
@@ -189,8 +232,10 @@ class LocationsFragment : Fragment() {
     }
 }
 
-class LocationsAdapter(private val locations: List<LocationEntry>) : 
-    RecyclerView.Adapter<LocationsAdapter.LocationViewHolder>() {
+class LocationsAdapter(
+    private val locations: List<LocationEntry>,
+    private val onShareClick: (LocationEntry) -> Unit
+) : RecyclerView.Adapter<LocationsAdapter.LocationViewHolder>() {
 
     class LocationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val itemNumberTextView: TextView = view.findViewById(R.id.itemNumberTextView)
@@ -198,6 +243,7 @@ class LocationsAdapter(private val locations: List<LocationEntry>) :
         val longitudeTextView: TextView = view.findViewById(R.id.longitudeTextView)
         val addressTextView: TextView = view.findViewById(R.id.addressTextView)
         val timestampTextView: TextView = view.findViewById(R.id.timestampTextView)
+        val shareButton: ImageButton = view.findViewById(R.id.shareButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LocationViewHolder {
@@ -233,6 +279,11 @@ class LocationsAdapter(private val locations: List<LocationEntry>) :
         val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
         val formattedDate = dateFormat.format(Date(location.timestamp))
         holder.timestampTextView.text = "Recorded: $formattedDate"
+        
+        // Set up share button
+        holder.shareButton.setOnClickListener {
+            onShareClick(location)
+        }
     }
 
     override fun getItemCount() = locations.size
