@@ -10,6 +10,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.google.android.gms.location.LocationServices
@@ -72,6 +75,20 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             
             // Setup button click listener
             addLocationButton?.setOnClickListener {
+                // Show a notification that disappears after one second
+                val toast = Toast.makeText(
+                    requireContext(),
+                    "Location added",
+                    Toast.LENGTH_SHORT
+                )
+                toast.show()
+
+                // Automatically dismiss the toast after 1 second
+                Handler(Looper.getMainLooper()).postDelayed({
+                    toast.cancel()
+                }, 1000)
+
+                // Proceed with adding location
                 manuallyAddCurrentLocation()
             }
             

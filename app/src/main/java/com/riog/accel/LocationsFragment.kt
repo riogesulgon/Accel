@@ -1,15 +1,22 @@
 package com.riog.accel
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -18,8 +25,14 @@ class LocationsFragment : Fragment() {
     private lateinit var locationsRecyclerView: RecyclerView
     private lateinit var emptyView: TextView
     private lateinit var deleteButton: Button
+    private lateinit var addLocationButton: Button
     private lateinit var databaseHelper: DatabaseHelper
     private lateinit var locationsAdapter: LocationsAdapter
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,13 +44,37 @@ class LocationsFragment : Fragment() {
         locationsRecyclerView = view.findViewById(R.id.locationsRecyclerView)
         emptyView = view.findViewById(R.id.emptyView)
         deleteButton = view.findViewById(R.id.deleteLocationsButton)
+        addLocationButton = view.findViewById(R.id.addLocationButton)
         
         databaseHelper = DatabaseHelper(requireContext())
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         
         setupRecyclerView()
         setupDeleteButton()
+        setupAddLocationButton()
         
         return view
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getCurrentLocation()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Location permission is required to add locations",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
 
     // New method to refresh locations list
@@ -56,6 +93,64 @@ class LocationsFragment : Fragment() {
         locationsRecyclerView.adapter = locationsAdapter
         
         updateEmptyViewVisibility(locations)
+    }
+
+    private fun setupAddLocationButton() {
+        addLocationButton.setOnClickListener {
+            if (ActivityCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    LOCATION_PERMISSION_REQUEST_CODE
+                )
+            } else {
+                getCurrentLocation()
+            }
+        }
+    }
+
+    private fun getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener { location ->
+                    location?.let {
+                        // Save location to database
+                        databaseHelper.insertLocation(
+                            latitude = it.latitude,
+                            longitude = it.longitude
+                        )
+                        
+                        // Refresh the locations list
+                        refreshLocationsList()
+                        
+                        Toast.makeText(
+                            requireContext(),
+                            "Location saved successfully",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } ?: run {
+                        Toast.makeText(
+                            requireContext(),
+                            "Could not get current location. Please ensure location is enabled.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(
+                        requireContext(),
+                        "Error getting location: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
     }
 
     private fun updateEmptyViewVisibility(locations: List<LocationEntry>) {
