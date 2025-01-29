@@ -22,6 +22,7 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@android:color/darker_gray"
+            android:fontFamily="@font/caskaydiacovenerdfontmono_bold"
             tools:text="#1"/>
 
         <TextView
@@ -29,6 +30,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
+            android:fontFamily="@font/caskaydiacovenerdfontmono_regular"
             tools:text="Latitude: 37.7749"/>
 
         <TextView
@@ -36,6 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
+            android:fontFamily="@font/caskaydiacovenerdfontmono_regular"
             tools:text="Longitude: -122.4194"/>
 
         <TextView
@@ -44,6 +47,7 @@
             android:layout_height="wrap_content"
             android:textSize="16sp"
             android:layout_marginTop="8dp"
+            android:fontFamily="@font/caskaydiacovenerdfontmono_regular"
             tools:text="123 Main St, Anytown, State 12345"/>
 
         <TextView
@@ -52,6 +56,7 @@
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="@android:color/darker_gray"
+            android:fontFamily="@font/caskaydiacovenerdfontmono_regular"
             tools:text="Recorded: Jan 29, 2025 11:30 PM"/>
 
     </LinearLayout>
