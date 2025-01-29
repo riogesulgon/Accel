@@ -74,7 +74,7 @@ This script will:
 After running, your font files will have consistent, clean names.
 
 ## 📱 Screenshots
-[Demo](Accel.gif)
+![Demo](Accel.gif)
 
 ## 🤝 Contributing
 Contributions are welcome! Feel free to open issues or submit pull requests.
