@@ -40,6 +40,14 @@ class LocationsFragment : Fragment() {
         return view
     }
 
+    // New method to refresh locations list
+    fun refreshLocationsList() {
+        val locations = databaseHelper.getAllLocations()
+        locationsAdapter = LocationsAdapter(locations)
+        locationsRecyclerView.adapter = locationsAdapter
+        updateEmptyViewVisibility(locations)
+    }
+
     private fun setupRecyclerView() {
         val locations = databaseHelper.getAllLocations()
         
@@ -90,6 +98,7 @@ class LocationsAdapter(private val locations: List<LocationEntry>) :
     RecyclerView.Adapter<LocationsAdapter.LocationViewHolder>() {
 
     class LocationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val itemNumberTextView: TextView = view.findViewById(R.id.itemNumberTextView)
         val latitudeTextView: TextView = view.findViewById(R.id.latitudeTextView)
         val longitudeTextView: TextView = view.findViewById(R.id.longitudeTextView)
         val addressTextView: TextView = view.findViewById(R.id.addressTextView)
@@ -104,6 +113,9 @@ class LocationsAdapter(private val locations: List<LocationEntry>) :
 
     override fun onBindViewHolder(holder: LocationViewHolder, position: Int) {
         val location = locations[position]
+        
+        // Set item number
+        holder.itemNumberTextView.text = "#${position + 1}"
         
         holder.latitudeTextView.text = String.format("Latitude: %.6f", location.latitude)
         holder.longitudeTextView.text = String.format("Longitude: %.6f", location.longitude)

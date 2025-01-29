@@ -24,7 +24,12 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 
-class MainActivity : AppCompatActivity() {
+// Interface for location update notifications
+interface LocationUpdateListener {
+    fun onLocationAdded()
+}
+
+class MainActivity : AppCompatActivity(), LocationUpdateListener {
     companion object {
         private const val TAG = "MainActivity"
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
@@ -34,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var databaseHelper: DatabaseHelper? = null
     private var viewPager: ViewPager2? = null
     private var tabLayout: TabLayout? = null
+    private var locationsFragment: LocationsFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +68,12 @@ class MainActivity : AppCompatActivity() {
             // Optionally show an error dialog to the user
             finish() // Close the activity if initialization fails
         }
+    }
+
+    // Implement LocationUpdateListener method
+    override fun onLocationAdded() {
+        // Find and refresh the LocationsFragment
+        locationsFragment?.refreshLocationsList()
     }
 
     private fun initializeViews() {
@@ -144,16 +156,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     // PagerAdapter for managing fragments
-    private inner class MainPagerAdapter(fragmentActivity: FragmentActivity) : 
+    private inner class MainPagerAdapter(fragmentActivity: FragmentActivity) :
         FragmentStateAdapter(fragmentActivity) {
         
         override fun getItemCount(): Int {
-            Log.d(TAG, "getItemCount called, returning 2")
             return 2
         }
 
         override fun createFragment(position: Int): Fragment {
-            Log.d(TAG, "createFragment called for position: $position")
             return when (position) {
                 0 -> {
                     Log.d(TAG, "Creating MapFragment")
@@ -161,7 +171,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 1 -> {
                     Log.d(TAG, "Creating LocationsFragment")
-                    LocationsFragment()
+                    val fragment = LocationsFragment()
+                    locationsFragment = fragment
+                    fragment
                 }
                 else -> {
                     Log.e(TAG, "Invalid fragment position: $position")

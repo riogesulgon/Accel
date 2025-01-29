@@ -19,6 +19,7 @@ import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.util.Locale
 
 class MapFragment : Fragment(), OnMapReadyCallback {
@@ -28,6 +29,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private var mapView: MapView? = null
     private var coordinatesTextView: TextView? = null
+    private var streetNameTextView: TextView? = null
+    private var addLocationButton: FloatingActionButton? = null
     private var googleMap: GoogleMap? = null
     private var databaseHelper: DatabaseHelper? = null
     private var geocoder: Geocoder? = null
@@ -53,6 +56,24 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 Log.e(TAG, "CoordinatesTextView initialization failed: findViewById returned null")
                 throw IllegalStateException("CoordinatesTextView could not be initialized")
             }
+
+            streetNameTextView = view.findViewById(R.id.streetNameTextView)
+            if (streetNameTextView == null) {
+                Log.e(TAG, "StreetNameTextView initialization failed: findViewById returned null")
+                throw IllegalStateException("StreetNameTextView could not be initialized")
+            }
+
+            // New button initialization
+            addLocationButton = view.findViewById(R.id.addLocationButton)
+            if (addLocationButton == null) {
+                Log.e(TAG, "AddLocationButton initialization failed: findViewById returned null")
+                throw IllegalStateException("AddLocationButton could not be initialized")
+            }
+            
+            // Setup button click listener
+            addLocationButton?.setOnClickListener {
+                manuallyAddCurrentLocation()
+            }
             
             // Safely initialize dependencies
             databaseHelper = DatabaseHelper(requireContext())
@@ -69,6 +90,12 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             Log.e(TAG, "Error creating fragment view", e)
             null
         }
+    }
+
+    // New method to manually trigger location saving
+    private fun manuallyAddCurrentLocation() {
+        Log.d(TAG, "Manually adding current location")
+        getCurrentLocation()
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -156,10 +183,26 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 // If no address found, insert location with just coordinates
                 helper.insertLocation(location.latitude, location.longitude)
             }
+            
+            // Notify MainActivity that a location has been added
+            val activity = requireActivity()
+            if (activity is LocationUpdateListener) {
+                activity.onLocationAdded()
+            } else {
+                Log.w(TAG, "Activity does not implement LocationUpdateListener")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error saving location to database", e)
             // Fallback to inserting just coordinates if geocoding fails
             databaseHelper?.insertLocation(location.latitude, location.longitude)
+            
+            // Still notify MainActivity even if there was an error
+            val activity = requireActivity()
+            if (activity is LocationUpdateListener) {
+                activity.onLocationAdded()
+            } else {
+                Log.w(TAG, "Activity does not implement LocationUpdateListener")
+            }
         }
     }
 
@@ -167,18 +210,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         try {
             val latLng = LatLng(location.latitude, location.longitude)
             
-            // Prepare coordinates text
-            val coordinatesText = buildString {
-                append("Lat: ${location.latitude}, Lon: ${location.longitude}")
-                
-                // Append street name if available
-                currentStreetName?.let { streetName ->
-                    append("\n$streetName")
-                }
-            }
-            
             // Update coordinates text
-            coordinatesTextView?.text = coordinatesText
+            coordinatesTextView?.text = "Lat: ${location.latitude}, Lon: ${location.longitude}"
+            
+            // Update street name text
+            streetNameTextView?.text = currentStreetName ?: "Street name not available"
             
             // Update map
             googleMap?.let {
